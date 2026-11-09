@@ -4,7 +4,7 @@ Instaladores oficiais para atualizar manualmente o aplicativo da Central D12. O 
 
 ## Versão atual
 
-Desktop **0.2.3**, com a Central **1.113.0** incluída.
+Desktop **0.2.3**, com a Central **1.114.0** incluída.
 
 - [Mac com chip Apple (M1, M2, M3, M4 e posteriores)](https://github.com/Grupo-D12/central-d12-downloads/releases/download/desktop-v0.2.3/Central-D12-0.2.3-mac-arm64.dmg)
 - [Mac Intel](https://github.com/Grupo-D12/central-d12-downloads/releases/download/desktop-v0.2.3/Central-D12-0.2.3-mac-x64.dmg)
