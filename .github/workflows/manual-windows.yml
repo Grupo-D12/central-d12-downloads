@@ -1,0 +1,161 @@
+name: Package Windows installer
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Draft release containing the packaged Mac client
+        required: true
+        default: desktop-v0.2.3
+        type: string
+      mac_zip_sha256:
+        description: SHA-256 of the packaged Mac ZIP
+        required: true
+        type: string
+      build_json_sha256:
+        description: SHA-256 of the public packaging configuration
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: manual-windows-${{ inputs.release_tag }}
+  cancel-in-progress: false
+
+jobs:
+  package:
+    runs-on: windows-2025
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ inputs.release_tag }}
+      EXPECTED_MAC_SHA: ${{ inputs.mac_zip_sha256 }}
+      EXPECTED_CONFIG_SHA: ${{ inputs.build_json_sha256 }}
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '22'
+
+      - name: Download and verify the packaged client
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:RELEASE_TAG -notmatch '^desktop-v\d+\.\d+\.\d+$') { throw 'Invalid release tag' }
+          if ($env:EXPECTED_MAC_SHA -notmatch '^[a-fA-F0-9]{64}$' -or $env:EXPECTED_CONFIG_SHA -notmatch '^[a-fA-F0-9]{64}$') { throw 'Invalid SHA-256' }
+          $release = gh release view $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY --json isDraft | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or -not $release.isDraft) { throw 'The release must remain a draft until all installers are checked' }
+          $version = $env:RELEASE_TAG.Substring(9)
+          $inputDir = Join-Path $env:RUNNER_TEMP 'd12-input'
+          New-Item $inputDir -ItemType Directory | Out-Null
+          $zip = "Central-D12-$version-mac-arm64.zip"
+          $config = "Central-D12-$version-build.json"
+          gh release download $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY --pattern $zip --pattern $config --dir $inputDir
+          if ($LASTEXITCODE -ne 0) { throw 'Unable to download build inputs' }
+          if ((Get-FileHash (Join-Path $inputDir $zip) -Algorithm SHA256).Hash -ne $env:EXPECTED_MAC_SHA) { throw 'Mac ZIP SHA-256 mismatch' }
+          if ((Get-FileHash (Join-Path $inputDir $config) -Algorithm SHA256).Hash -ne $env:EXPECTED_CONFIG_SHA) { throw 'Build configuration SHA-256 mismatch' }
+          Expand-Archive (Join-Path $inputDir $zip) (Join-Path $inputDir 'mac')
+          "D12_VERSION=$version" >> $env:GITHUB_ENV
+          "D12_INPUT=$inputDir" >> $env:GITHUB_ENV
+
+      - name: Build unsigned Windows installer
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $project = Join-Path $env:RUNNER_TEMP 'd12-win-build'
+          New-Item $project -ItemType Directory | Out-Null
+          Set-Location $project
+          $configPath = Join-Path $env:D12_INPUT "Central-D12-$env:D12_VERSION-build.json"
+          $config = Get-Content $configPath -Raw | ConvertFrom-Json
+          if ($config.package.version -ne $env:D12_VERSION -or $config.package.build.appId -ne 'com.grupod12.central') { throw 'Unexpected package identity' }
+          [IO.File]::WriteAllText((Join-Path $project 'package.json'), ($config.package | ConvertTo-Json -Depth 100), [Text.UTF8Encoding]::new($false))
+          npm install --ignore-scripts --no-audit --no-fund --loglevel=error
+          if ($LASTEXITCODE -ne 0) { throw 'Packaging dependencies could not be installed' }
+          $resources = Join-Path $env:D12_INPUT 'mac/Central D12.app/Contents/Resources'
+          $env:D12_ASAR_PATH = Join-Path $resources 'app.asar'
+          node -e "require('@electron/asar').extractAll(process.env.D12_ASAR_PATH, 'extracted')"
+          if ($LASTEXITCODE -ne 0) { throw 'Unable to extract the packaged client' }
+          Copy-Item 'extracted/src' 'src' -Recurse
+          New-Item 'build' -ItemType Directory | Out-Null
+          Copy-Item 'extracted/build/icon.png' 'build/icon.png'
+          New-Item 'dist' -ItemType Directory | Out-Null
+          Copy-Item (Join-Path $resources 'renderer') 'dist/renderer' -Recurse
+          $renderer = Get-Content 'dist/renderer/version.json' -Raw | ConvertFrom-Json
+          if ($renderer.version -ne $config.rendererVersion) { throw 'Unexpected renderer version' }
+          npx --no-install electron-builder --win --x64 --publish never
+          if ($LASTEXITCODE -ne 0) { throw 'Windows packaging failed' }
+          $installer = Join-Path $project "dist/installers/Central-D12-$env:D12_VERSION-x64-setup.exe"
+          if (-not (Test-Path $installer)) { throw 'Installer was not generated' }
+          $signature = Get-AuthenticodeSignature $installer
+          if ($signature.Status -ne 'NotSigned') { throw 'Unexpected signing status; this release intentionally has no commercial certificate' }
+          "D12_PROJECT=$project" >> $env:GITHUB_ENV
+          "D12_INSTALLER=$installer" >> $env:GITHUB_ENV
+
+      - name: Install and open the packaged application
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $install = Join-Path $env:RUNNER_TEMP 'd12-installed'
+          $process = Start-Process -FilePath $env:D12_INSTALLER -ArgumentList @('/S', "/D=$install") -PassThru
+          if (-not $process.WaitForExit(120000)) { throw 'Silent installation timed out' }
+          if ($process.ExitCode -ne 0) { throw "Silent installation failed: $($process.ExitCode)" }
+          $exe = Join-Path $install 'Central D12.exe'
+          if (-not (Test-Path $exe)) { throw 'Installed application was not found' }
+          Get-Process | Where-Object { $_.Path -eq $exe } | Stop-Process
+          Set-Location $env:D12_PROJECT
+          $env:D12_EXECUTABLE = $exe
+          @'
+          import assert from 'node:assert/strict';
+          import {mkdtemp,rm,readFile,writeFile} from 'node:fs/promises';
+          import os from 'node:os';
+          import path from 'node:path';
+          import {_electron,expect} from '@playwright/test';
+          const profile=await mkdtemp(path.join(os.tmpdir(),'d12-native-check-'));
+          const config=JSON.parse(await readFile('dist/renderer/desktop-config.json','utf8'));
+          const electron=await _electron.launch({executablePath:process.env.D12_EXECUTABLE,args:[`--user-data-dir=${profile}`],timeout:30000});
+          try{
+            await electron.context().route('https://**/*',route=>route.abort());
+            const page=await electron.firstWindow();
+            await page.getByRole('button',{name:'Entrar com Google',exact:true}).waitFor({state:'visible',timeout:30000});
+            const bridge=await page.evaluate(()=>({platform:window.d12Desktop.platform,arch:window.d12Desktop.arch,require:typeof window.require}));
+            assert.deepEqual(bridge,{platform:'win32',arch:'x64',require:'undefined'});
+            const prefs=await electron.evaluate(({BrowserWindow})=>{const p=BrowserWindow.getAllWindows()[0].webContents.getLastWebPreferences();return {sandbox:p.sandbox,contextIsolation:p.contextIsolation,nodeIntegration:p.nodeIntegration,webSecurity:p.webSecurity};});
+            assert.deepEqual(prefs,{sandbox:true,contextIsolation:true,nodeIntegration:false,webSecurity:true});
+            assert.equal(await page.evaluate(async()=>{try{await window.d12Desktop.openExternal('file:///C:/Windows/win.ini');return false;}catch{return true;}}),true);
+            await electron.evaluate(({shell})=>{shell.openExternal=async url=>{globalThis.__d12CheckUrl=url;};});
+            const auth=`${config.authOrigin}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent('d12-central://auth/callback')}&code_challenge=${'x'.repeat(43)}&code_challenge_method=s256&prompt=select_account`;
+            await page.evaluate(url=>{window.__d12CheckLogin=window.d12Desktop.beginLogin(url);},auth);
+            await expect.poll(()=>electron.evaluate(()=>globalThis.__d12CheckUrl),{timeout:5000}).toBeTruthy();
+            const pending=await electron.evaluate(()=>globalThis.__d12CheckUrl);
+            assert.equal(new URL(pending).origin,config.authOrigin);
+            const callback=new URL(new URL(pending).searchParams.get('redirect_to'));callback.searchParams.set('code','synthetic-installer-check');
+            await electron.evaluate(({app},url)=>app.emit('second-instance',{},[process.execPath,url],process.cwd()),callback.href);
+            assert.deepEqual(await page.evaluate(()=>window.__d12CheckLogin),{code:'synthetic-installer-check'});
+            const appVersion=await electron.evaluate(({app})=>app.getVersion());
+            assert.equal(appVersion,process.env.D12_VERSION);
+            const renderer=JSON.parse(await readFile('dist/renderer/version.json','utf8'));
+            await writeFile(`dist/installers/Central-D12-${appVersion}-windows-checks.json`,JSON.stringify({installer:'NSIS x64',installationExitCode:0,appVersion,rendererVersion:renderer.version,bridge,...prefs,loginHandoff:'synthetic; no account authentication',authenticode:'NotSigned'},null,2)+'\n');
+            console.log('Installer opened the production login screen; isolation and synthetic PKCE callback passed.');
+          }finally{await electron.close();await rm(profile,{recursive:true,force:true});}
+          '@ | Set-Content 'check-installed.mjs' -Encoding utf8NoBOM
+          node check-installed.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Installed application check failed' }
+
+      - name: Upload installer into the draft release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $checks = Join-Path $env:D12_PROJECT "dist/installers/Central-D12-$env:D12_VERSION-windows-checks.json"
+          $hash = (Get-FileHash $env:D12_INSTALLER -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  $([IO.Path]::GetFileName($env:D12_INSTALLER))" | Set-Content "$env:D12_INSTALLER.sha256" -Encoding utf8NoBOM
+          gh release upload $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY $env:D12_INSTALLER "$env:D12_INSTALLER.sha256" $checks
+          if ($LASTEXITCODE -ne 0) { throw 'Release upload failed' }
+          "Built and checked Windows $env:D12_VERSION; release remains a draft for publication." >> $env:GITHUB_STEP_SUMMARY
