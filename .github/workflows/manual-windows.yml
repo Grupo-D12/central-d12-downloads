@@ -156,6 +156,8 @@ jobs:
           $checks = Join-Path $env:D12_PROJECT "dist/installers/Central-D12-$env:D12_VERSION-windows-checks.json"
           $hash = (Get-FileHash $env:D12_INSTALLER -Algorithm SHA256).Hash.ToLowerInvariant()
           "$hash  $([IO.Path]::GetFileName($env:D12_INSTALLER))" | Set-Content "$env:D12_INSTALLER.sha256" -Encoding utf8NoBOM
-          gh release upload $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY $env:D12_INSTALLER "$env:D12_INSTALLER.sha256" $checks
+          $release = gh release view $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY --json isDraft | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or -not $release.isDraft) { throw 'Refusing to replace published installers' }
+          gh release upload $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY --clobber $env:D12_INSTALLER "$env:D12_INSTALLER.sha256" $checks
           if ($LASTEXITCODE -ne 0) { throw 'Release upload failed' }
           "Built and checked Windows $env:D12_VERSION; release remains a draft for publication." >> $env:GITHUB_STEP_SUMMARY
