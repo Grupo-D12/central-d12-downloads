@@ -4,12 +4,14 @@ Instaladores oficiais para atualizar manualmente o aplicativo da Central D12. O 
 
 ## Versão atual
 
-Desktop **0.2.3**, com a Central **1.114.0** incluída.
+Desktop **0.2.4**, com a Central **1.115.0** incluída.
 
-- [Mac com chip Apple (M1, M2, M3, M4 e posteriores)](https://github.com/Grupo-D12/central-d12-downloads/releases/download/desktop-v0.2.3/Central-D12-0.2.3-mac-arm64.dmg)
-- [Mac Intel](https://github.com/Grupo-D12/central-d12-downloads/releases/download/desktop-v0.2.3/Central-D12-0.2.3-mac-x64.dmg)
-- [Windows 64 bits (Intel/AMD)](https://github.com/Grupo-D12/central-d12-downloads/releases/download/desktop-v0.2.3/Central-D12-0.2.3-x64-setup.exe)
-- [Arquivos da versão e verificação SHA-256](https://github.com/Grupo-D12/central-d12-downloads/releases/tag/desktop-v0.2.3)
+- [Mac com chip Apple (M1, M2, M3, M4 e posteriores)](https://github.com/Grupo-D12/central-d12-downloads/releases/download/desktop-v0.2.4/Central-D12-0.2.4-mac-arm64.dmg)
+- [Mac Intel](https://github.com/Grupo-D12/central-d12-downloads/releases/download/desktop-v0.2.4/Central-D12-0.2.4-mac-x64.dmg)
+- [Windows 64 bits (Intel/AMD)](https://github.com/Grupo-D12/central-d12-downloads/releases/download/desktop-v0.2.4/Central-D12-0.2.4-x64-setup.exe)
+- [Arquivos da versão e verificação SHA-256](https://github.com/Grupo-D12/central-d12-downloads/releases/tag/desktop-v0.2.4)
+
+Esta versão mostra remetente, canal e prévia nas notificações. A opção **Mostrar prévia das mensagens** nas configurações permite ocultar o conteúdo neste aparelho.
 
 ## Como atualizar
 
@@ -17,6 +19,8 @@ Desktop **0.2.3**, com a Central **1.114.0** incluída.
 2. No Mac, abra o DMG e arraste **Central D12** para **Aplicativos**, substituindo a versão anterior. Requer macOS 13 ou posterior.
 3. No Windows, execute o instalador e mantenha o mesmo local da instalação anterior. Requer Windows 10 ou posterior, em 64 bits.
 4. Abra o aplicativo atualizado e entre com sua conta, se solicitado. Não apague os dados do aplicativo para atualizar.
+
+Se o Mac bloquear a primeira abertura, abra **Ajustes do Sistema → Privacidade e Segurança → Abrir Mesmo Assim** ao lado de Central D12 e confirme a abertura. Isso cria uma exceção para esse aplicativo; mantenha as proteções gerais do Mac ativadas. [Orientação oficial da Apple](https://support.apple.com/pt-br/102445).
 
 Estes pacotes não têm certificado comercial: o Mac usa assinatura ad-hoc, sem notarização; o Windows não tem assinatura Authenticode. O sistema pode mostrar um aviso ou exigir aprovação manual. Em computadores administrados pela empresa, uma política do sistema pode impedir a instalação. A Central também está disponível em [central.grupod12.com](https://central.grupod12.com).
 
