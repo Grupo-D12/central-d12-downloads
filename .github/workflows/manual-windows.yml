@@ -137,10 +137,37 @@ jobs:
             const callback=new URL(new URL(pending).searchParams.get('redirect_to'));callback.searchParams.set('code','synthetic-installer-check');
             await electron.evaluate(({app},url)=>app.emit('second-instance',{},[process.execPath,url],process.cwd()),callback.href);
             assert.deepEqual(await page.evaluate(()=>window.__d12CheckLogin),{code:'synthetic-installer-check'});
+            // In-app update through the actual installed bridge, using only synthetic public assets.
+            assert.equal(await page.evaluate(()=>window.d12Desktop.liveUI),true);
+            await electron.evaluate(async({app,net,shell})=>{
+              const fs=await import('node:fs/promises'),path=await import('node:path');
+              const root=path.join(process.resourcesPath,'renderer');
+              const manifest=JSON.parse(await fs.readFile(path.join(root,'version.json'),'utf8'));
+              globalThis.__d12OriginalFetch=globalThis.fetch;globalThis.__d12OriginalNetFetch=net.fetch;
+              globalThis.__d12Offline=true;globalThis.__d12Downloads=[];
+              globalThis.fetch=async url=>{if(url!=='https://central.grupod12.com/version.json')throw new Error('Unexpected origin');return new Response(JSON.stringify(manifest),{headers:{'content-type':'application/json'}});};
+              net.fetch=async(url,options)=>{
+                if(globalThis.__d12Offline)throw new Error('Synthetic offline');
+                const parsed=new URL(url);if(parsed.origin!=='https://central.grupod12.com'||options.credentials!=='omit'||options.redirect!=='error')throw new Error('Unsafe request');
+                const ext=path.extname(parsed.pathname),type=ext==='.html'?'text/html':ext==='.js'?'text/javascript':ext==='.css'?'text/css':'application/octet-stream';
+                return new Response(await fs.readFile(path.join(root,parsed.pathname)),{headers:{'content-type':type}});
+              };
+              shell.openExternal=async url=>{globalThis.__d12Downloads.push(url);};
+            });
+            await page.evaluate(()=>{localStorage.setItem('d12-update-check','retained');window.__d12BeforeUpdate=true;});
+            assert.match(await page.evaluate(async()=>{try{await window.d12Desktop.updateUI();return '';}catch(error){return error.message;}}),/tente novamente/);
+            assert.equal(await page.evaluate(()=>window.__d12BeforeUpdate),true);
+            await electron.evaluate(()=>{globalThis.__d12Offline=false;});
+            const loaded=page.waitForEvent('domcontentloaded');await page.evaluate(()=>{void window.d12Desktop.updateUI();});await loaded;
+            await page.getByRole('button',{name:'Entrar com Google',exact:true}).waitFor({state:'visible',timeout:30000});
+            assert.equal(await page.evaluate(()=>window.__d12BeforeUpdate),undefined);
+            assert.equal(await page.evaluate(()=>localStorage.getItem('d12-update-check')),'retained');
+            assert.deepEqual(await electron.evaluate(()=>globalThis.__d12Downloads),[]);
+            await electron.evaluate(({net})=>{globalThis.fetch=globalThis.__d12OriginalFetch;net.fetch=globalThis.__d12OriginalNetFetch;});
             const appVersion=await electron.evaluate(({app})=>app.getVersion());
             assert.equal(appVersion,process.env.D12_VERSION);
             const renderer=JSON.parse(await readFile('dist/renderer/version.json','utf8'));
-            await writeFile(`dist/installers/Central-D12-${appVersion}-windows-checks.json`,JSON.stringify({installer:'NSIS x64',installationExitCode:0,appVersion,rendererVersion:renderer.version,bridge,...prefs,loginHandoff:'synthetic; no account authentication',authenticode:'NotSigned'},null,2)+'\n');
+            await writeFile(`dist/installers/Central-D12-${appVersion}-windows-checks.json`,JSON.stringify({installer:'NSIS x64',installationExitCode:0,appVersion,rendererVersion:renderer.version,bridge,...prefs,loginHandoff:'synthetic; no account authentication',uiUpdate:'in app; offline retry; storage retained; no browser or installer',authenticode:'NotSigned'},null,2)+'\n');
             console.log('Installer opened the production login screen; isolation and synthetic PKCE callback passed.');
           }finally{await electron.close();await rm(profile,{recursive:true,force:true});}
           '@ | Set-Content 'check-installed.mjs' -Encoding utf8NoBOM
