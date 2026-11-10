@@ -140,7 +140,7 @@ jobs:
             // In-app update through the actual installed bridge, using only synthetic public assets.
             assert.equal(await page.evaluate(()=>window.d12Desktop.liveUI),true);
             await electron.evaluate(async({app,net,shell})=>{
-              const fs=await import('node:fs/promises'),path=await import('node:path');
+              const fs=process.getBuiltinModule('node:fs').promises,path=process.getBuiltinModule('node:path');
               const root=path.join(process.resourcesPath,'renderer');
               const manifest=JSON.parse(await fs.readFile(path.join(root,'version.json'),'utf8'));
               globalThis.__d12OriginalFetch=globalThis.fetch;globalThis.__d12OriginalNetFetch=net.fetch;
