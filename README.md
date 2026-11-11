@@ -4,16 +4,16 @@ Instaladores oficiais para atualizar manualmente o aplicativo da Central D12. O 
 
 ## Versão atual
 
-Desktop **0.2.5**, com a Central **1.117.0** incluída.
+Desktop **0.2.8**, com tradução local do raciocínio. O botão Traduzir usa Mozilla no aparelho, sem consumir a assinatura nem usar API paga. Nomes dos campos e códigos ficam protegidos, e os arquivos do tradutor já acompanham o aplicativo.
 
-- [Mac com chip Apple (M1, M2, M3, M4 e posteriores)](https://github.com/Grupo-D12/central-d12-downloads/releases/download/desktop-v0.2.5/Central-D12-0.2.5-mac-arm64.dmg)
-- [Mac Intel](https://github.com/Grupo-D12/central-d12-downloads/releases/download/desktop-v0.2.5/Central-D12-0.2.5-mac-x64.dmg)
-- [Windows 64 bits (Intel/AMD)](https://github.com/Grupo-D12/central-d12-downloads/releases/download/desktop-v0.2.5/Central-D12-0.2.5-x64-setup.exe)
-- [Arquivos da versão e verificação SHA-256](https://github.com/Grupo-D12/central-d12-downloads/releases/tag/desktop-v0.2.5)
+- [Mac com chip Apple (M1, M2, M3, M4 e posteriores)](https://github.com/Grupo-D12/central-d12-downloads/releases/download/desktop-v0.2.8/Central-D12-0.2.8-mac-arm64.dmg)
+- [Mac Intel](https://github.com/Grupo-D12/central-d12-downloads/releases/download/desktop-v0.2.8/Central-D12-0.2.8-mac-x64.dmg)
+- [Windows 64 bits (Intel/AMD)](https://github.com/Grupo-D12/central-d12-downloads/releases/download/desktop-v0.2.8/Central-D12-0.2.8-x64-setup.exe)
+- [Arquivos da versão e verificação SHA-256](https://github.com/Grupo-D12/central-d12-downloads/releases/tag/desktop-v0.2.8)
 
-Depois de instalar esta versão uma vez, **Atualizar agora** passa a preparar e recarregar a interface dentro do app. Mostra **Atualizando…**, preserva login, preferências e rascunhos e usa cache dos arquivos já baixados. Não abre o navegador nem baixa DMG/EXE a cada publicação comum. Se a conexão falhar, a versão aberta continua disponível e permite tentar novamente.
+Instale esta versão uma vez para habilitar a tradução no desktop. Depois, **Atualizar agora** continua preparando e recarregando a interface dentro do app. Mostra **Atualizando…**, preserva login, preferências e rascunhos e usa cache dos arquivos já baixados. Não abre o navegador nem baixa DMG/EXE a cada publicação comum. Se a conexão falhar, a versão aberta continua disponível e permite tentar novamente.
 
-## Primeira instalação da base 0.2.5
+## Instalar ou atualizar
 
 1. Feche a Central D12 instalada.
 2. No Mac, abra o DMG e arraste **Central D12** para **Aplicativos**, substituindo a versão anterior. Requer macOS 13 ou posterior.
