@@ -6,7 +6,7 @@ on:
       release_tag:
         description: Draft release containing the packaged Mac client
         required: true
-        default: desktop-v0.2.3
+        default: desktop-v0.2.8
         type: string
       mac_zip_sha256:
         description: SHA-256 of the packaged Mac ZIP
@@ -112,7 +112,7 @@ jobs:
           $env:D12_EXECUTABLE = $exe
           @'
           import assert from 'node:assert/strict';
-          import {mkdtemp,rm,readFile,writeFile} from 'node:fs/promises';
+          import {mkdtemp,rm,readFile,readdir,writeFile} from 'node:fs/promises';
           import os from 'node:os';
           import path from 'node:path';
           import {_electron,expect} from '@playwright/test';
@@ -127,6 +127,18 @@ jobs:
             assert.deepEqual(bridge,{platform:'win32',arch:'x64',require:'undefined'});
             const prefs=await electron.evaluate(({BrowserWindow})=>{const p=BrowserWindow.getAllWindows()[0].webContents.getLastWebPreferences();return {sandbox:p.sandbox,contextIsolation:p.contextIsolation,nodeIntegration:p.nodeIntegration,webSecurity:p.webSecurity};});
             assert.deepEqual(prefs,{sandbox:true,contextIsolation:true,nodeIntegration:false,webSecurity:true});
+            assert.equal(await page.evaluate(()=>window.d12Desktop.localTranslation),true);
+            const worker=(await readdir('dist/renderer/assets')).find(name=>name.startsWith('translation.worker-')&&name.endsWith('.js'));
+            assert.ok(worker,'Local translation worker must ship in the installer');
+            const translated=await page.evaluate(worker=>new Promise((resolve,reject)=>{
+              const instance=new Worker('/assets/'+worker,{type:'module'});
+              const timeout=setTimeout(()=>{instance.terminate();reject(Error('Local translation timed out'));},30000);
+              instance.onerror=error=>{clearTimeout(timeout);instance.terminate();reject(Error(error.message));};
+              instance.onmessage=({data})=>{if(data.type==='progress')return;clearTimeout(timeout);instance.terminate();if(data.type==='result')resolve(data.text);else reject(Error('Local translation failed'));};
+              instance.postMessage({id:1,text:'Check Copy Review for AD5005. Keep EAR, PUN and LHO unchanged.'});
+            }),worker);
+            for(const value of ['Copy Review','AD5005','EAR','PUN','LHO'])assert.ok(translated.includes(value),value);
+            assert.ok(!translated.startsWith('Check '));
             assert.equal(await page.evaluate(async()=>{try{await window.d12Desktop.openExternal('file:///C:/Windows/win.ini');return false;}catch{return true;}}),true);
             await electron.evaluate(({shell})=>{shell.openExternal=async url=>{globalThis.__d12CheckUrl=url;};});
             const auth=`${config.authOrigin}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent('d12-central://auth/callback')}&code_challenge=${'x'.repeat(43)}&code_challenge_method=s256&prompt=select_account`;
@@ -134,9 +146,15 @@ jobs:
             await expect.poll(()=>electron.evaluate(()=>globalThis.__d12CheckUrl),{timeout:5000}).toBeTruthy();
             const pending=await electron.evaluate(()=>globalThis.__d12CheckUrl);
             assert.equal(new URL(pending).origin,config.authOrigin);
-            const callback=new URL(new URL(pending).searchParams.get('redirect_to'));callback.searchParams.set('code','synthetic-installer-check');
+            const browserReturn=new URL(new URL(pending).searchParams.get('redirect_to'));
+            assert.equal(browserReturn.origin,'https://central.grupod12.com');
+            assert.equal(browserReturn.pathname,'/auth/desktop');
+            assert.match(browserReturn.searchParams.get('state'),/^[a-f0-9]{64}$/);
+            const callback=new URL('d12-central://auth/callback');
+            callback.searchParams.set('state',browserReturn.searchParams.get('state'));
+            callback.searchParams.set('code','synthetic-installer-check');
             await electron.evaluate(({app},url)=>app.emit('second-instance',{},[process.execPath,url],process.cwd()),callback.href);
-            assert.deepEqual(await page.evaluate(()=>window.__d12CheckLogin),{code:'synthetic-installer-check'});
+            assert.deepEqual(await page.evaluate(()=>Promise.race([window.__d12CheckLogin,new Promise((_,reject)=>setTimeout(()=>reject(Error('Synthetic login callback timed out')),10000))])),{code:'synthetic-installer-check'});
             // In-app update through the actual installed bridge, using only synthetic public assets.
             assert.equal(await page.evaluate(()=>window.d12Desktop.liveUI),true);
             await electron.evaluate(async({app,net,shell})=>{
@@ -167,7 +185,7 @@ jobs:
             const appVersion=await electron.evaluate(({app})=>app.getVersion());
             assert.equal(appVersion,process.env.D12_VERSION);
             const renderer=JSON.parse(await readFile('dist/renderer/version.json','utf8'));
-            await writeFile(`dist/installers/Central-D12-${appVersion}-windows-checks.json`,JSON.stringify({installer:'NSIS x64',installationExitCode:0,appVersion,rendererVersion:renderer.version,bridge,...prefs,loginHandoff:'synthetic; no account authentication',uiUpdate:'in app; offline retry; storage retained; no browser or installer',authenticode:'NotSigned'},null,2)+'\n');
+            await writeFile(`dist/installers/Central-D12-${appVersion}-windows-checks.json`,JSON.stringify({installer:'NSIS x64',installationExitCode:0,appVersion,rendererVersion:renderer.version,bridge,...prefs,localTranslation:'Mozilla on-device; Copy Review, AD5005, EAR, PUN and LHO preserved',loginHandoff:'synthetic browser return and native callback; no account authentication',uiUpdate:'in app; offline retry; storage retained; no browser or installer',authenticode:'NotSigned'},null,2)+'\n');
             console.log('Installer opened the production login screen; isolation and synthetic PKCE callback passed.');
           }finally{await electron.close();await rm(profile,{recursive:true,force:true});}
           '@ | Set-Content 'check-installed.mjs' -Encoding utf8NoBOM
