@@ -189,7 +189,7 @@ jobs:
             const appVersion=await electron.evaluate(({app})=>app.getVersion());
             assert.equal(appVersion,process.env.D12_VERSION);
             const renderer=JSON.parse(await readFile('dist/renderer/version.json','utf8'));
-            await writeFile(`dist/installers/Central-D12-${appVersion}-windows-checks.json`,JSON.stringify({installer:'NSIS x64',installationExitCode:0,appVersion,rendererVersion:renderer.version,bridge,...prefs,localTranslation:'Mozilla on-device; Copy Review, AD5005, EAR, PUN and LHO preserved',loginHandoff:'synthetic browser return and native callback; no account authentication',uiUpdate:'in app; offline retry; storage retained; no browser or installer',authenticode:'NotSigned'},null,2)+'\n');
+            await writeFile(`dist/installers/Central-D12-${appVersion}-windows-checks.json`,JSON.stringify({installer:'NSIS x64',installationExitCode:0,appVersion,rendererVersion:renderer.version,bridge,...prefs,localTranslation:'Mozilla on-device; Copy Review, AD5005, EAR, PUN and LHO preserved',loginHandoff:'synthetic browser return and native callback; no account authentication',uiUpdate:'in app; offline retry; storage retained; no browser or installer',nativeFeatures,authenticode:'NotSigned'},null,2)+'\n');
             console.log('Installer opened the production login screen; isolation and synthetic PKCE callback passed.');
           }finally{await electron.close();await rm(profile,{recursive:true,force:true});}
           '@ | Set-Content 'check-installed.mjs' -Encoding utf8NoBOM
