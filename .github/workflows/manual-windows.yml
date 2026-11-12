@@ -77,6 +77,8 @@ jobs:
           [IO.File]::WriteAllText((Join-Path $project 'package.json'), ($config.package | ConvertTo-Json -Depth 100), [Text.UTF8Encoding]::new($false))
           npm install --ignore-scripts --no-audit --no-fund --loglevel=error
           if ($LASTEXITCODE -ne 0) { throw 'Packaging dependencies could not be installed' }
+          if ([version]$env:D12_VERSION -ge [version]'0.2.9' -and -not $config.nativeChecksSource) { throw 'Native feature checks are required for desktop 0.2.9+' }
+          if ($config.nativeChecksSource) { [IO.File]::WriteAllText((Join-Path $project 'native-features-check.mjs'), [string]$config.nativeChecksSource, [Text.UTF8Encoding]::new($false)) }
           $resources = Join-Path $env:D12_INPUT 'mac/Central D12.app/Contents/Resources'
           $env:D12_ASAR_PATH = Join-Path $resources 'app.asar'
           node -e "require('@electron/asar').extractAll(process.env.D12_ASAR_PATH, 'extracted')"
@@ -118,7 +120,7 @@ jobs:
           import {_electron,expect} from '@playwright/test';
           const profile=await mkdtemp(path.join(os.tmpdir(),'d12-native-check-'));
           const config=JSON.parse(await readFile('dist/renderer/desktop-config.json','utf8'));
-          const electron=await _electron.launch({executablePath:process.env.D12_EXECUTABLE,args:[`--user-data-dir=${profile}`],timeout:30000});
+          const electron=await _electron.launch({executablePath:process.env.D12_EXECUTABLE,args:[`--user-data-dir=${profile}`,'--use-fake-device-for-media-stream'],timeout:30000});
           try{
             await electron.context().route('https://**/*',route=>route.abort());
             const page=await electron.firstWindow();
@@ -182,6 +184,8 @@ jobs:
             assert.equal(await page.evaluate(()=>localStorage.getItem('d12-update-check')),'retained');
             assert.deepEqual(await electron.evaluate(()=>globalThis.__d12Downloads),[]);
             await electron.evaluate(({net})=>{globalThis.fetch=globalThis.__d12OriginalFetch;net.fetch=globalThis.__d12OriginalNetFetch;});
+            let nativeFeatures=null;
+            if(await page.evaluate(()=>Boolean(window.d12Desktop.mediaCapture)))nativeFeatures=await (await import('./native-features-check.mjs')).checkNativeFeatures(electron,page);
             const appVersion=await electron.evaluate(({app})=>app.getVersion());
             assert.equal(appVersion,process.env.D12_VERSION);
             const renderer=JSON.parse(await readFile('dist/renderer/version.json','utf8'));
