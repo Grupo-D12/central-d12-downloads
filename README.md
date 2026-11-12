@@ -4,14 +4,14 @@ Instaladores oficiais para atualizar manualmente o aplicativo da Central D12. O 
 
 ## Versão atual
 
-Desktop **0.2.8**, com tradução local do raciocínio. O botão Traduzir usa Mozilla no aparelho, sem consumir a assinatura nem usar API paga. Nomes dos campos e códigos ficam protegidos, e os arquivos do tradutor já acompanham o aplicativo.
+Desktop **0.2.9**, com correções nas abas do Tráfego e nas gravações de áudio e tela. O aplicativo pede as permissões do sistema e permite escolher a tela ou janela. A tradução local do raciocínio continua incluída, sem API paga.
 
-- [Mac com chip Apple (M1, M2, M3, M4 e posteriores)](https://github.com/Grupo-D12/central-d12-downloads/releases/download/desktop-v0.2.8/Central-D12-0.2.8-mac-arm64.dmg)
-- [Mac Intel](https://github.com/Grupo-D12/central-d12-downloads/releases/download/desktop-v0.2.8/Central-D12-0.2.8-mac-x64.dmg)
-- [Windows 64 bits (Intel/AMD)](https://github.com/Grupo-D12/central-d12-downloads/releases/download/desktop-v0.2.8/Central-D12-0.2.8-x64-setup.exe)
-- [Arquivos da versão e verificação SHA-256](https://github.com/Grupo-D12/central-d12-downloads/releases/tag/desktop-v0.2.8)
+- [Mac com chip Apple (M1, M2, M3, M4 e posteriores)](https://github.com/Grupo-D12/central-d12-downloads/releases/download/desktop-v0.2.9/Central-D12-0.2.9-mac-arm64.dmg)
+- [Mac Intel](https://github.com/Grupo-D12/central-d12-downloads/releases/download/desktop-v0.2.9/Central-D12-0.2.9-mac-x64.dmg)
+- [Windows 64 bits (Intel/AMD)](https://github.com/Grupo-D12/central-d12-downloads/releases/download/desktop-v0.2.9/Central-D12-0.2.9-x64-setup.exe)
+- [Arquivos da versão e verificação SHA-256](https://github.com/Grupo-D12/central-d12-downloads/releases/tag/desktop-v0.2.9)
 
-Instale esta versão uma vez para habilitar a tradução no desktop. Depois, **Atualizar agora** continua preparando e recarregando a interface dentro do app. Mostra **Atualizando…**, preserva login, preferências e rascunhos e usa cache dos arquivos já baixados. Não abre o navegador nem baixa DMG/EXE a cada publicação comum. Se a conexão falhar, a versão aberta continua disponível e permite tentar novamente.
+Instale esta versão uma vez para receber as correções nativas. A Central avisa quando o aplicativo instalado precisa ser substituído, mesmo se a interface web já estiver atualizada. Depois, **Atualizar agora** continua preparando e recarregando a interface dentro do app. Mostra **Atualizando…**, preserva login, preferências e rascunhos e usa cache dos arquivos já baixados. Não abre o navegador nem baixa DMG/EXE a cada publicação comum. Se a conexão falhar, a versão aberta continua disponível e permite tentar novamente.
 
 ## Instalar ou atualizar
 
