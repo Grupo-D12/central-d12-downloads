@@ -4,14 +4,14 @@ Instaladores oficiais para atualizar manualmente o aplicativo da Central D12. O 
 
 ## Versão atual
 
-Desktop **0.2.11**. O Placar da semana abre no aplicativo para Mac e Windows.
+Desktop **0.2.12**. Ao clicar em **Gravar a tela**, escolha **Tela inteira** ou **Janelas** no aplicativo para Mac e Windows.
 
-- [Mac com chip Apple (M1, M2, M3, M4 e posteriores)](https://github.com/Grupo-D12/central-d12-downloads/releases/download/desktop-v0.2.11/Central-D12-0.2.11-mac-arm64.dmg)
-- [Mac Intel](https://github.com/Grupo-D12/central-d12-downloads/releases/download/desktop-v0.2.11/Central-D12-0.2.11-mac-x64.dmg)
-- [Windows 64 bits (Intel/AMD)](https://github.com/Grupo-D12/central-d12-downloads/releases/download/desktop-v0.2.11/Central-D12-0.2.11-x64-setup.exe)
-- [Arquivos da versão e verificação SHA-256](https://github.com/Grupo-D12/central-d12-downloads/releases/tag/desktop-v0.2.11)
+- [Mac com chip Apple (M1, M2, M3, M4 e posteriores)](https://github.com/Grupo-D12/central-d12-downloads/releases/download/desktop-v0.2.12/Central-D12-0.2.12-mac-arm64.dmg)
+- [Mac Intel](https://github.com/Grupo-D12/central-d12-downloads/releases/download/desktop-v0.2.12/Central-D12-0.2.12-mac-x64.dmg)
+- [Windows 64 bits (Intel/AMD)](https://github.com/Grupo-D12/central-d12-downloads/releases/download/desktop-v0.2.12/Central-D12-0.2.12-x64-setup.exe)
+- [Arquivos da versão e verificação SHA-256](https://github.com/Grupo-D12/central-d12-downloads/releases/tag/desktop-v0.2.12)
 
-Se a Central já estiver instalada, abra **Novidades** e use **Baixar aplicativo 0.2.11**. Caso apareça **Atualizar agora**, clique para recarregar a interface e volte a **Novidades** para baixar o instalador.
+Se a Central já estiver instalada, abra **Novidades** e use **Baixar aplicativo 0.2.12**. Caso apareça **Atualizar agora**, clique para recarregar a interface e volte a **Novidades** para baixar o instalador.
 
 ## Instalar ou atualizar
 
